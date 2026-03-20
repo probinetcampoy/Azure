@@ -20,12 +20,17 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Chargement depuis:", API_URL + "/destinations");
       loadingDiv.style.display = "block";
       const response = await fetch(
-        CORS_PROXY + encodeURIComponent(API_URL + "/destinations")
+        CORS_PROXY + encodeURIComponent(API_URL + "/destinations"),
       );
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
-      allDestinations = await response.json();
+      const text = await response.text();
+      console.log("Réponse brute:", text);
+      allDestinations = JSON.parse(text);
+      if (!Array.isArray(allDestinations)) {
+        allDestinations = Object.values(allDestinations);
+      }
       console.log("Destinations:", allDestinations);
       filteredDestinations = allDestinations;
       renderDestinations();
@@ -53,7 +58,9 @@ document.addEventListener("DOMContentLoaded", function () {
       card.dataset.name = destination.name;
 
       const imageUrl =
-        destination.imageUrl || getDefaultImage(destination.name);
+        destination.imageUrl ||
+        destination.image_url ||
+        getDefaultImage(destination.name);
 
       card.innerHTML =
         '<img src="' +
@@ -110,14 +117,16 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Récupération détails ID:", destinationId);
       const response = await fetch(
         CORS_PROXY +
-          encodeURIComponent(API_URL + "/destinations/" + destinationId)
+          encodeURIComponent(API_URL + "/destinations/" + destinationId),
       );
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
       const destination = await response.json();
       const imageUrl =
-        destination.imageUrl || getDefaultImage(destination.name);
+        destination.imageUrl ||
+        destination.image_url ||
+        getDefaultImage(destination.name);
 
       modalBody.innerHTML =
         '<img src="' +
