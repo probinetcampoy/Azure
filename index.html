@@ -19,7 +19,7 @@
       </nav>
 
       <div class="hero-content">
-        <h1>Partez à l’aventure avec TravelNow</h1>
+        <h1>Partez à l'aventure avec TravelNow</h1>
         <p>Découvrez les plus belles destinations au meilleur prix.</p>
         <a href="#destinations" class="btn">Voir les voyages</a>
       </div>
@@ -37,16 +37,27 @@
 
       <section id="destinations" class="section">
         <h2>Nos destinations populaires</h2>
-        <div class="cards-container" id="cardsContainer">
-          <!-- Les cartes seront ajoutées ici dynamiquement par script.js -->
+        <div id="loadingDestinations" class="loading">
+          Chargement des destinations...
         </div>
+        <div class="cards-container" id="cardsContainer"></div>
       </section>
+
+      <!-- Modal des détails de destination -->
+      <div id="detailsModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <div id="modalBody">
+            <!-- Contenu dynamique -->
+          </div>
+        </div>
+      </div>
 
       <section id="offres" class="section offers">
         <h2>Offres spéciales</h2>
         <div class="offers-grid">
           <div class="offer-box">
-            <h3>-20% sur les séjours d’été</h3>
+            <h3>-20% sur les séjours d'été</h3>
             <p>
               Profitez de nos réductions exceptionnelles pour voyager en
               famille.
