@@ -19,9 +19,9 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       console.log("Chargement depuis:", API_URL + "/destinations");
       loadingDiv.style.display = "block";
-      const proxyUrl =
-        CORS_PROXY + encodeURIComponent(API_URL + "/destinations");
-      const response = await fetch(proxyUrl);
+      const response = await fetch(
+        CORS_PROXY + encodeURIComponent(API_URL + "/destinations")
+      );
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
@@ -108,10 +108,10 @@ document.addEventListener("DOMContentLoaded", function () {
   async function showDestinationDetails(destinationId) {
     try {
       console.log("Récupération détails ID:", destinationId);
-      const proxyUrl =
+      const response = await fetch(
         CORS_PROXY +
-        encodeURIComponent(API_URL + "/destinations/" + destinationId);
-      const response = await fetch(proxyUrl);
+          encodeURIComponent(API_URL + "/destinations/" + destinationId)
+      );
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
