@@ -7,24 +7,32 @@ const contactForm = document.querySelector(".contact-form");
 
 let destinationsData = [];
 
-// 🔥 FETCH DES DONNÉES
 async function fetchDestinations() {
   try {
     const res = await fetch(`${API_BASE_URL}/destinations`);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
     const data = await res.json();
+    console.log("Données reçues :", data);
 
     destinationsData = data;
     displayDestinations(data);
   } catch (error) {
-    console.error("Erreur API :", error);
-    cardsContainer.innerHTML =
-      "<p>Erreur lors du chargement des destinations.</p>";
+    console.error("Erreur détaillée :", error);
+    cardsContainer.innerHTML = `<p>Erreur lors du chargement des destinations : ${error.message}</p>`;
   }
 }
 
-// 🔥 AFFICHAGE DES CARTES
 function displayDestinations(destinations) {
   cardsContainer.innerHTML = "";
+
+  if (!destinations || destinations.length === 0) {
+    cardsContainer.innerHTML = "<p>Aucune destination trouvée.</p>";
+    return;
+  }
 
   destinations.forEach((dest) => {
     const card = document.createElement("div");
@@ -44,23 +52,24 @@ function displayDestinations(destinations) {
   });
 }
 
-// 🔎 RECHERCHE
-searchInput.addEventListener("input", (e) => {
-  const value = e.target.value.toLowerCase();
+if (searchInput) {
+  searchInput.addEventListener("input", (e) => {
+    const value = e.target.value.toLowerCase();
 
-  const filtered = destinationsData.filter((dest) =>
-    dest.name.toLowerCase().includes(value),
-  );
+    const filtered = destinationsData.filter((dest) =>
+      dest.name.toLowerCase().includes(value),
+    );
 
-  displayDestinations(filtered);
-});
+    displayDestinations(filtered);
+  });
+}
 
-// 📩 FORMULAIRE
-contactForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  alert("Message envoyé avec succès !");
-  contactForm.reset();
-});
+if (contactForm) {
+  contactForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    alert("Message envoyé avec succès !");
+    contactForm.reset();
+  });
+}
 
-// 🚀 INIT
 fetchDestinations();
