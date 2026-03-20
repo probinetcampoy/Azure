@@ -4,6 +4,7 @@ const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
 let allDestinations = [];
 let filteredDestinations = [];
+let isLoading = false;
 
 document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.getElementById("searchInput");
@@ -14,55 +15,63 @@ document.addEventListener("DOMContentLoaded", function () {
   const modalBody = document.getElementById("modalBody");
   const contactForm = document.querySelector(".contact-form");
 
-  // Charger les destinations depuis l'API
   async function loadDestinations() {
+    if (isLoading) {
+      console.log("Déjà en cours de chargement, abandon...");
+      return;
+    }
+
     try {
-      console.log("Chargement depuis:", API_URL + "/destinations");
+      isLoading = true;
+      console.log("🔄 Chargement depuis:", API_URL + "/destinations");
       loadingDiv.style.display = "block";
 
-      // Essayer sans proxy d'abord
       let response = await fetch(API_URL + "/destinations", {
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
       }).catch((err) => {
-        console.log("Erreur sans proxy, essai avec proxy...");
+        console.log("⚠️ Erreur directe:", err.message);
+        console.log("↪️ Essai avec proxy...");
         return fetch(
           CORS_PROXY + encodeURIComponent(API_URL + "/destinations"),
         );
       });
 
+      console.log("📊 Response status:", response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error("HTTP " + response.status);
+        throw new Error("HTTP " + response.status + " " + response.statusText);
       }
 
       const text = await response.text();
-      console.log("Réponse brute:", text);
+      console.log(
+        "📥 Réponse brute (premiers 500 chars):",
+        text.substring(0, 500),
+      );
 
-      try {
-        allDestinations = JSON.parse(text);
-      } catch (e) {
-        console.log("Parse error, réponse reçue:", text.substring(0, 200));
-        throw new Error("Réponse invalide du serveur");
-      }
+      allDestinations = JSON.parse(text);
+      console.log(
+        "✅ JSON parsé, type:",
+        Array.isArray(allDestinations) ? "Array" : "Object",
+      );
 
       if (!Array.isArray(allDestinations)) {
-        console.log("Conversion objet en tableau...");
+        console.log("🔄 Conversion objet en tableau...");
         allDestinations = Object.values(allDestinations);
       }
 
-      console.log("Destinations chargées:", allDestinations);
+      console.log("✅ Destinations chargées:", allDestinations.length, "items");
       filteredDestinations = allDestinations;
       renderDestinations();
       loadingDiv.style.display = "none";
     } catch (error) {
-      console.error("Erreur complète:", error);
+      console.error("❌ Erreur complète:", error);
       loadingDiv.innerHTML =
-        '<p style="color: red;">Erreur: ' + error.message + "</p>";
+        '<p style="color: red;">❌ Erreur: ' + error.message + "</p>";
+    } finally {
+      isLoading = false;
     }
   }
 
-  // Afficher les cartes
   function renderDestinations() {
     cardsContainer.innerHTML = "";
 
@@ -78,9 +87,7 @@ document.addEventListener("DOMContentLoaded", function () {
       card.dataset.name = destination.name;
 
       const imageUrl =
-        destination.imageUrl ||
-        destination.image_url ||
-        getDefaultImage(destination.name);
+        destination.image_url || getDefaultImage(destination.name);
 
       card.innerHTML =
         '<img src="' +
@@ -99,17 +106,15 @@ document.addEventListener("DOMContentLoaded", function () {
         (destination.price
           ? "À partir de " + destination.price + "€"
           : "Prix sur demande") +
-        "</span>" +
-        "</div>";
+        "</span></div>";
 
-      card.addEventListener("click", function () {
-        showDestinationDetails(destination.id);
-      });
+      card.addEventListener("click", () =>
+        showDestinationDetails(destination.id),
+      );
       cardsContainer.appendChild(card);
     });
   }
 
-  // Images par défaut
   function getDefaultImage(destinationName) {
     const images = {
       Bali: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80",
@@ -131,10 +136,9 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  // Détails destination
   async function showDestinationDetails(destinationId) {
     try {
-      console.log("Récupération détails ID:", destinationId);
+      console.log("Détails ID:", destinationId);
       const response = await fetch(
         CORS_PROXY +
           encodeURIComponent(API_URL + "/destinations/" + destinationId),
@@ -144,9 +148,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const destination = await response.json();
       const imageUrl =
-        destination.imageUrl ||
-        destination.image_url ||
-        getDefaultImage(destination.name);
+        destination.image_url || getDefaultImage(destination.name);
 
       modalBody.innerHTML =
         '<img src="' +
@@ -163,11 +165,8 @@ document.addEventListener("DOMContentLoaded", function () {
         "<p><strong>Prix:</strong> " +
         (destination.price ? destination.price + "€" : "Sur demande") +
         "</p>" +
-        "<p><strong>Saison:</strong> " +
-        (destination.season || "N/A") +
-        "</p>" +
-        "<p><strong>Attractions:</strong> " +
-        (destination.attractions || "N/A") +
+        "<p><strong>Pays:</strong> " +
+        (destination.country || "N/A") +
         "</p>" +
         "<button class=\"btn\" onclick=\"document.getElementById('detailsModal').style.display='none'\">Fermer</button>";
 
@@ -178,38 +177,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Recherche
   searchInput.addEventListener("input", function (e) {
     const value = e.target.value.toLowerCase();
-    filteredDestinations = allDestinations.filter(function (dest) {
-      return (
-        dest.name.toLowerCase().indexOf(value) !== -1 ||
-        (dest.description &&
-          dest.description.toLowerCase().indexOf(value) !== -1)
-      );
-    });
+    filteredDestinations = allDestinations.filter(
+      (dest) =>
+        dest.name.toLowerCase().includes(value) ||
+        (dest.description && dest.description.toLowerCase().includes(value)),
+    );
     renderDestinations();
   });
 
-  // Fermer modal
-  closeBtn.addEventListener("click", function () {
+  closeBtn.addEventListener("click", () => {
     detailsModal.style.display = "none";
   });
 
-  window.addEventListener("click", function (event) {
-    if (event.target === detailsModal) {
-      detailsModal.style.display = "none";
-    }
+  window.addEventListener("click", (event) => {
+    if (event.target === detailsModal) detailsModal.style.display = "none";
   });
 
-  // Contact
-  contactForm.addEventListener("submit", function (e) {
+  contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
     alert("Message envoyé !");
     contactForm.reset();
   });
 
-  // Charger les destinations
   loadDestinations();
 });
 const API_URL =
@@ -218,6 +209,7 @@ const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
 let allDestinations = [];
 let filteredDestinations = [];
+let isLoading = false;
 
 document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.getElementById("searchInput");
@@ -228,35 +220,63 @@ document.addEventListener("DOMContentLoaded", function () {
   const modalBody = document.getElementById("modalBody");
   const contactForm = document.querySelector(".contact-form");
 
-  // Charger les destinations depuis l'API
   async function loadDestinations() {
-    try {
-      console.log("Chargement depuis:", API_URL + "/destinations");
-      loadingDiv.style.display = "block";
-      const response = await fetch(
-        CORS_PROXY + encodeURIComponent(API_URL + "/destinations"),
-      );
+    if (isLoading) {
+      console.log("Déjà en cours de chargement, abandon...");
+      return;
+    }
 
-      if (!response.ok) throw new Error("HTTP " + response.status);
+    try {
+      isLoading = true;
+      console.log("🔄 Chargement depuis:", API_URL + "/destinations");
+      loadingDiv.style.display = "block";
+
+      let response = await fetch(API_URL + "/destinations", {
+        headers: { Accept: "application/json" },
+      }).catch((err) => {
+        console.log("⚠️ Erreur directe:", err.message);
+        console.log("↪️ Essai avec proxy...");
+        return fetch(
+          CORS_PROXY + encodeURIComponent(API_URL + "/destinations"),
+        );
+      });
+
+      console.log("📊 Response status:", response.status, response.statusText);
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status + " " + response.statusText);
+      }
 
       const text = await response.text();
-      console.log("Réponse brute:", text);
+      console.log(
+        "📥 Réponse brute (premiers 500 chars):",
+        text.substring(0, 500),
+      );
+
       allDestinations = JSON.parse(text);
+      console.log(
+        "✅ JSON parsé, type:",
+        Array.isArray(allDestinations) ? "Array" : "Object",
+      );
+
       if (!Array.isArray(allDestinations)) {
+        console.log("🔄 Conversion objet en tableau...");
         allDestinations = Object.values(allDestinations);
       }
-      console.log("Destinations:", allDestinations);
+
+      console.log("✅ Destinations chargées:", allDestinations.length, "items");
       filteredDestinations = allDestinations;
       renderDestinations();
       loadingDiv.style.display = "none";
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("❌ Erreur complète:", error);
       loadingDiv.innerHTML =
-        '<p style="color: red;">Erreur: ' + error.message + "</p>";
+        '<p style="color: red;">❌ Erreur: ' + error.message + "</p>";
+    } finally {
+      isLoading = false;
     }
   }
 
-  // Afficher les cartes
   function renderDestinations() {
     cardsContainer.innerHTML = "";
 
@@ -272,9 +292,7 @@ document.addEventListener("DOMContentLoaded", function () {
       card.dataset.name = destination.name;
 
       const imageUrl =
-        destination.imageUrl ||
-        destination.image_url ||
-        getDefaultImage(destination.name);
+        destination.image_url || getDefaultImage(destination.name);
 
       card.innerHTML =
         '<img src="' +
@@ -293,17 +311,15 @@ document.addEventListener("DOMContentLoaded", function () {
         (destination.price
           ? "À partir de " + destination.price + "€"
           : "Prix sur demande") +
-        "</span>" +
-        "</div>";
+        "</span></div>";
 
-      card.addEventListener("click", function () {
-        showDestinationDetails(destination.id);
-      });
+      card.addEventListener("click", () =>
+        showDestinationDetails(destination.id),
+      );
       cardsContainer.appendChild(card);
     });
   }
 
-  // Images par défaut
   function getDefaultImage(destinationName) {
     const images = {
       Bali: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80",
@@ -325,10 +341,9 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  // Détails destination
   async function showDestinationDetails(destinationId) {
     try {
-      console.log("Récupération détails ID:", destinationId);
+      console.log("Détails ID:", destinationId);
       const response = await fetch(
         CORS_PROXY +
           encodeURIComponent(API_URL + "/destinations/" + destinationId),
@@ -338,9 +353,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const destination = await response.json();
       const imageUrl =
-        destination.imageUrl ||
-        destination.image_url ||
-        getDefaultImage(destination.name);
+        destination.image_url || getDefaultImage(destination.name);
 
       modalBody.innerHTML =
         '<img src="' +
@@ -357,11 +370,8 @@ document.addEventListener("DOMContentLoaded", function () {
         "<p><strong>Prix:</strong> " +
         (destination.price ? destination.price + "€" : "Sur demande") +
         "</p>" +
-        "<p><strong>Saison:</strong> " +
-        (destination.season || "N/A") +
-        "</p>" +
-        "<p><strong>Attractions:</strong> " +
-        (destination.attractions || "N/A") +
+        "<p><strong>Pays:</strong> " +
+        (destination.country || "N/A") +
         "</p>" +
         "<button class=\"btn\" onclick=\"document.getElementById('detailsModal').style.display='none'\">Fermer</button>";
 
@@ -372,37 +382,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Recherche
   searchInput.addEventListener("input", function (e) {
     const value = e.target.value.toLowerCase();
-    filteredDestinations = allDestinations.filter(function (dest) {
-      return (
-        dest.name.toLowerCase().indexOf(value) !== -1 ||
-        (dest.description &&
-          dest.description.toLowerCase().indexOf(value) !== -1)
-      );
-    });
+    filteredDestinations = allDestinations.filter(
+      (dest) =>
+        dest.name.toLowerCase().includes(value) ||
+        (dest.description && dest.description.toLowerCase().includes(value)),
+    );
     renderDestinations();
   });
 
-  // Fermer modal
-  closeBtn.addEventListener("click", function () {
+  closeBtn.addEventListener("click", () => {
     detailsModal.style.display = "none";
   });
 
-  window.addEventListener("click", function (event) {
-    if (event.target === detailsModal) {
-      detailsModal.style.display = "none";
-    }
+  window.addEventListener("click", (event) => {
+    if (event.target === detailsModal) detailsModal.style.display = "none";
   });
 
-  // Contact
-  contactForm.addEventListener("submit", function (e) {
+  contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
     alert("Message envoyé !");
     contactForm.reset();
   });
 
-  // Charger les destinations
   loadDestinations();
 });
