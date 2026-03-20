@@ -1,6 +1,5 @@
 const API_URL =
   "https://api-voyage-adam-ajdthba4evb9gqgb.francecentral-01.azurewebsites.net";
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
 let allDestinations = [];
 let filteredDestinations = [];
@@ -19,9 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       console.log("Chargement depuis:", API_URL + "/destinations");
       loadingDiv.style.display = "block";
-      const proxyUrl =
-        CORS_PROXY + encodeURIComponent(API_URL + "/destinations");
-      const response = await fetch(proxyUrl);
+      const response = await fetch(API_URL + "/destinations");
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
@@ -108,10 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function showDestinationDetails(destinationId) {
     try {
       console.log("Récupération détails ID:", destinationId);
-      const proxyUrl =
-        CORS_PROXY +
-        encodeURIComponent(API_URL + "/destinations/" + destinationId);
-      const response = await fetch(proxyUrl);
+      const response = await fetch(API_URL + "/destinations/" + destinationId);
 
       if (!response.ok) throw new Error("HTTP " + response.status);
 
